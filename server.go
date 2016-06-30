@@ -14,6 +14,7 @@ import (
 //imports
 
 //Robot must be exported so that json package can access it to encode
+// all strings because they're going to be serialized to JSON anyways
 type Robot struct {
 	Name      string // the name of the robot
 	IP        string // the ip address of the robot
@@ -43,6 +44,7 @@ func update(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	pdebug("IP of request: " + r.RemoteAddr)
 	fmt.Fprintf(w, updateRobot(query, r.RemoteAddr))
+	save()
 }
 
 func serveBasicHTML(f func() string) func(http.ResponseWriter, *http.Request) {
@@ -73,13 +75,6 @@ func save() {
 	checkErr(err, "couldn't marshal the DNS")
 	err = ioutil.WriteFile(file, bytes, 0644)
 	checkErr(err, "couldn't write to "+file)
-}
-
-func periodicallySave() {
-	for {
-		save()
-		<-saveTicker.C // waits on ticker
-	}
 }
 
 func load() {
@@ -145,9 +140,6 @@ func main() {
 
 	//load from local files/database
 	load()
-
-	//start goroutine to periodically save?
-	go periodicallySave()
 
 	//bind/start server
 	http.HandleFunc("/update", update)
