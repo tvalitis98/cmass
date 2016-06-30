@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -27,7 +28,7 @@ type Robot struct {
 //declare variables
 var robots []Robot
 
-var portNumber string
+var portNumber int
 var file string
 var debug bool
 
@@ -134,7 +135,7 @@ func (bot Robot) String() string {
 
 func main() {
 	flag.BoolVar(&debug, "debug", false, "print debug info")
-	flag.StringVar(&portNumber, "port", "7978", "port number")
+	flag.IntVar(&portNumber, "port", 7978, "port number")
 	flag.StringVar(&file, "file", ".robot_statuses", "file to save robot statuses")
 	flag.Parse()
 
@@ -146,6 +147,6 @@ func main() {
 	http.HandleFunc("/json", serveBasicHTML(jsonOutput))
 	http.HandleFunc("/text", serveBasicHTML(textOutput))
 
-	fmt.Println("starting server on port " + portNumber)
-	log.Fatal(http.ListenAndServe(":"+portNumber, nil))
+	fmt.Println("starting server on port " + strconv.Itoa(portNumber))
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(portNumber), nil))
 }
