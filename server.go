@@ -45,12 +45,10 @@ func update(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, updateRobot(query, r.RemoteAddr))
 }
 
-func getJSON(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, jsonOutput())
-}
-
-func getText(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, textOutput())
+func serveBasicHTML(f func() string) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, f())
+	}
 }
 
 //utility functions
@@ -148,8 +146,8 @@ func main() {
 
 	//bind/start server
 	http.HandleFunc("/update", update)
-	http.HandleFunc("/json", getJSON)
-	http.HandleFunc("/text", getText)
+	http.HandleFunc("/json", serveBasicHTML(jsonOutput))
+	http.HandleFunc("/text", serveBasicHTML(textOutput))
 
 	fmt.Println("starting server on port " + portNumber)
 	log.Fatal(http.ListenAndServe(":"+portNumber, nil))
