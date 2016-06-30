@@ -120,15 +120,20 @@ func jsonOutput() string {
 	return string(bytes)
 }
 
-//// prettify
 func textOutput() string {
 	ret := ""
 	for _, bot := range robots {
-		ret += bot.Name + "\n"
-		ret += "\t" + "IP: " + bot.IP + "\n"
-		ret += "\t" + "Coordinates: (" + bot.X + ", " + bot.Y + ")\n"
-		ret += "\t" + "Time Last Alive: " + bot.LastAlive + "\n"
+		ret += bot.String()
 	}
+	return ret
+}
+
+func (bot Robot) String() string {
+	ret := ""
+	ret += bot.Name + "\n"
+	ret += "\t" + "IP: " + bot.IP + "\n"
+	ret += "\t" + "Coordinates: (" + bot.X + ", " + bot.Y + ")\n"
+	ret += "\t" + "Time Last Alive: " + bot.LastAlive + "\n"
 	return ret
 }
 
