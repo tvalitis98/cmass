@@ -88,10 +88,12 @@ func load() {
 
 func addRobot(query url.Values, addr string) {
 	bot := Robot{
-		Name: query.Get("name"),
-		IP:   addr,
-		X:    query.Get("x"),
-		Y:    query.Get("y")}
+		Name:      query.Get("name"),
+		IP:        addr,
+		X:         query.Get("x"),
+		Y:         query.Get("y"),
+		Alive:     "true",
+		LastAlive: strconv.FormatInt(time.Now().Unix(), 10)}
 	pdebug("Adding new robot: " + string(bot.Name))
 	robots = append(robots, bot)
 }
