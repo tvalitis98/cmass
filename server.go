@@ -18,6 +18,7 @@ import (
 // all strings because they're going to be serialized to JSON anyways
 type Robot struct {
 	Name      string // the name of the robot
+	User 			string // the user logged in to the robot
 	IP        string // the ip address of the robot
 	X         string // x coordinate
 	Y         string // y coordinate
@@ -89,6 +90,7 @@ func load() {
 func addRobot(query url.Values, addr string) {
 	bot := Robot{
 		Name:      query.Get("name"),
+		User:			 query.Get("user"),
 		IP:        addr,
 		X:         query.Get("x"),
 		Y:         query.Get("y"),
@@ -101,9 +103,11 @@ func addRobot(query url.Values, addr string) {
 func updateRobot(query url.Values, addr string) string {
 	for i, bot := range robots {
 		if bot.Name == query.Get("name") {
+			robots[i].User = query.Get("user")
 			robots[i].IP = addr
 			robots[i].X = query.Get("x")
 			robots[i].Y = query.Get("y")
+			robots[i].LastAlive = strconv.FormatInt(time.Now().Unix(), 10)
 			pdebug("Updated " + query.Get("name"))
 			return "updated " + query.Get("name")
 		}
@@ -129,6 +133,7 @@ func textOutput() string {
 func (bot Robot) String() string {
 	ret := ""
 	ret += bot.Name + "\n"
+	ret += "\t" + "User: " + bot.User + "\n"
 	ret += "\t" + "IP: " + bot.IP + "\n"
 	ret += "\t" + "Coordinates: (" + bot.X + ", " + bot.Y + ")\n"
 	ret += "\t" + "Time Last Alive: " + bot.LastAlive + "\n"
