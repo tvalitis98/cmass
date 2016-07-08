@@ -9,10 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
-
-//imports
 
 //Robot must be exported so that json package can access it to encode
 // all strings because they're going to be serialized to JSON anyways
@@ -26,19 +25,44 @@ type Robot struct {
 	LastAlive string // epoch time since robot last pinged server
 }
 
-//declare variables
+func (bot Robot) String() string {
+	ret := ""
+	ret += bot.Name + "\n"
+	ret += "\t" + "User: " + bot.User + "\n"
+	ret += "\t" + "IP: " + bot.IP + "\n"
+	ret += "\t" + "Coordinates: (" + bot.X + ", " + bot.Y + ")\n"
+	ret += "\t" + "Alive: " + bot.Alive + "\n"
+	ret += "\t" + "Time Last Alive: " + bot.LastAlive + "\n"
+	return ret
+}
+
 var robots []Robot
 
+// command line args
 var portNumber int
 var file string
 var debug bool
 
 var saveTicker = time.NewTicker(20 * time.Second) // controls time between saves
 
+var aliveTimeout = 10 // (in seconds) if a robot isn't heard from in this time, it's not alive
+
+/////////////
+// ROUTING //
+/////////////
+
+// converts a string-returning function to a function that writes to
+func serveBasicHTML(f func() string) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, f())
+	}
+}
+
 //define functions for server endpoints
 ////    /update           called by robots with their info
-////    /robot/<name>     called to access a specific robot's info
-////    /json             called to access all robots' info
+////		/text							serves all robot info
+////    /json             serves all robot info as json
+////    /hosts        		legacy support, serves robotname:IP
 ////    /hostsjson        legacy support, serves json of robotname:IP
 ////    /hostsalivejson   legacy support, serves json of robotname:IP of active robots
 
@@ -49,13 +73,52 @@ func update(w http.ResponseWriter, r *http.Request) {
 	save()
 }
 
-func serveBasicHTML(f func() string) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, f())
-	}
+func jsonFull() string {
+	bytes, err := json.Marshal(robots)
+	checkErr(err, "couldn't jsonify")
+	return string(bytes)
 }
 
-//utility functions
+func hosts() string {
+	ret := ""
+	for _, bot := range robots {
+		ret += bot.Name + "\t\t"
+		ret += bot.IP + "\n"
+	}
+	return ret
+}
+
+func hostsJSON() string {
+	ret := "{"
+	for _, bot := range robots {
+		ret += "\"" + bot.Name + "\":"
+		ret += "\"" + bot.IP + "\","
+	}
+	return strings.TrimSuffix(ret, ",") + "}"
+}
+
+func hostsAliveJSON() string {
+	ret := "{"
+	for _, bot := range robots {
+		if bot.Alive == "true" {
+			ret += "\"" + bot.Name + "\":"
+			ret += "\"" + bot.IP + "\","
+		}
+	}
+	return strings.TrimSuffix(ret, ",") + "}"
+}
+
+func textFull() string {
+	ret := ""
+	for _, bot := range robots {
+		ret += bot.String()
+	}
+	return ret
+}
+
+///////////////////////
+// utility functions //
+///////////////////////
 
 func pdebug(message string) {
 	if debug {
@@ -70,6 +133,10 @@ func checkErr(err error, message string) {
 		log.Println(err)
 	}
 }
+
+/////////
+// I/O //
+/////////
 
 func save() {
 	pdebug("saving to local file")
@@ -110,7 +177,7 @@ func updateRobot(query url.Values, addr string) string {
 
 			oldTime, _ := strconv.ParseInt(robots[i].LastAlive, 10, 64)
 			newTime := time.Now().Unix()
-			robots[i].LastAlive = strconv.FormatBool(newTime-oldTime < 10)
+			robots[i].LastAlive = strconv.FormatBool(newTime-oldTime < aliveTimeout)
 			robots[i].LastAlive = strconv.FormatInt(newTime, 10)
 
 			pdebug("Updated " + query.Get("name"))
@@ -119,31 +186,6 @@ func updateRobot(query url.Values, addr string) string {
 	}
 	addRobot(query, addr) // if it's not in robots, add it
 	return "Added " + query.Get("name")
-}
-
-func jsonOutput() string {
-	bytes, err := json.Marshal(robots)
-	checkErr(err, "couldn't jsonify")
-	return string(bytes)
-}
-
-func textOutput() string {
-	ret := ""
-	for _, bot := range robots {
-		ret += bot.String()
-	}
-	return ret
-}
-
-func (bot Robot) String() string {
-	ret := ""
-	ret += bot.Name + "\n"
-	ret += "\t" + "User: " + bot.User + "\n"
-	ret += "\t" + "IP: " + bot.IP + "\n"
-	ret += "\t" + "Coordinates: (" + bot.X + ", " + bot.Y + ")\n"
-	ret += "\t" + "Alive: " + bot.Alive + "\n"
-	ret += "\t" + "Time Last Alive: " + bot.LastAlive + "\n"
-	return ret
 }
 
 func main() {
@@ -157,8 +199,11 @@ func main() {
 
 	//bind/start server
 	http.HandleFunc("/update", update)
-	http.HandleFunc("/json", serveBasicHTML(jsonOutput))
-	http.HandleFunc("/text", serveBasicHTML(textOutput))
+	http.HandleFunc("/json", serveBasicHTML(jsonFull))
+	http.HandleFunc("/text", serveBasicHTML(textFull))
+	http.HandleFunc("/hosts", serveBasicHTML(hosts))
+	http.HandleFunc("/hostsjson", serveBasicHTML(hostsJSON))
+	http.HandleFunc("/hostsalivejson", serveBasicHTML(hostsAliveJSON))
 
 	fmt.Println("starting server on port " + strconv.Itoa(portNumber))
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(portNumber), nil))
