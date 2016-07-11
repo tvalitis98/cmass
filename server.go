@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -45,7 +47,7 @@ var debug bool
 
 var saveTicker = time.NewTicker(20 * time.Second) // controls time between saves
 
-var aliveTimeout = 10 // (in seconds) if a robot isn't heard from in this time, it's not alive
+var aliveTimeout = int64(10) // (in seconds) if a robot isn't heard from in this time, it's not alive
 
 /////////////
 // ROUTING //
@@ -188,7 +190,29 @@ func updateRobot(query url.Values, addr string) string {
 	return "Added " + query.Get("name")
 }
 
+// check the validity of the message
+func checkValidity(check string, timestamp string) bool {
+	pdebug("reading from .secretkey")
+	bytes, err := ioutil.ReadFile(".secretkey")
+	checkErr(err, "couldn't read from .secretkey")
+	password := hex.EncodeToString(bytes)
+
+	combination := timestamp + password
+
+	fmt.Println(check, hash(combination))
+	return true
+}
+
+func hash(msg string) string {
+	h := sha256.New()
+	h.Write([]byte(msg))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 func main() {
+
+	checkValidity("dog", "timestamp")
+
 	flag.BoolVar(&debug, "debug", false, "print debug info")
 	flag.IntVar(&portNumber, "port", 7978, "port number")
 	flag.StringVar(&file, "file", ".robot_statuses", "file to save robot statuses")
