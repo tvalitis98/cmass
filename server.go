@@ -65,12 +65,12 @@ func serveBasicHTML(f func() string) func(http.ResponseWriter, *http.Request) {
 }
 
 //define functions for server endpoints
-////    /update           called by robots with their info
+////		/update						called by robots with their info
 ////		/text							serves all robot info
-////    /json             serves all robot info as json
-////    /hosts        		legacy support, serves robotname:IP
-////    /hostsjson        legacy support, serves json of robotname:IP
-////    /hostsalivejson   legacy support, serves json of robotname:IP of active robots
+////		/json							serves all robot info as json
+////		/hosts						legacy support, serves robotname:IP
+////		/hostsjson				legacy support, serves json of robotname:IP
+////		/hostsalivejson		legacy support, serves json of robotname:IP of active robots
 
 func update(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
