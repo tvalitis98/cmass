@@ -44,10 +44,14 @@ var robots []Robot
 var portNumber int
 var file string
 var debug bool
+var secure bool
 
 var saveTicker = time.NewTicker(20 * time.Second) // controls time between saves
 
 var aliveTimeout = int64(10) // (in seconds) if a robot isn't heard from in this time, it's not alive
+
+var hasher = sha256.New() // used to hash
+var hashIterations = 1000 // must be agreed upon by client and server
 
 /////////////
 // ROUTING //
@@ -170,6 +174,18 @@ func addRobot(query url.Values, addr string) {
 }
 
 func updateRobot(query url.Values, addr string) string {
+	//saves the value of token then removes it so that the url string is identical
+	//to the string hashed by the client
+	token := query.Get("token")
+	query.Del("token")
+
+	if checkValidity(token, query.Encode()) || !secure {
+		fmt.Println("valid")
+	} else {
+		fmt.Println("not valid")
+		return "invalid token!"
+	}
+
 	for i, bot := range robots {
 		if bot.Name == query.Get("name") {
 			robots[i].User = query.Get("user")
@@ -179,11 +195,11 @@ func updateRobot(query url.Values, addr string) string {
 
 			oldTime, _ := strconv.ParseInt(robots[i].LastAlive, 10, 64)
 			newTime := time.Now().Unix()
-			robots[i].LastAlive = strconv.FormatBool(newTime-oldTime < aliveTimeout)
+			robots[i].Alive = strconv.FormatBool(newTime-oldTime < aliveTimeout)
 			robots[i].LastAlive = strconv.FormatInt(newTime, 10)
 
 			pdebug("Updated " + query.Get("name"))
-			return "updated " + query.Get("name")
+			return "updated " + query.Get("name") + "\n\n" + " - - - - - -\n\n" + robots[i].String()
 		}
 	}
 	addRobot(query, addr) // if it's not in robots, add it
@@ -191,28 +207,31 @@ func updateRobot(query url.Values, addr string) string {
 }
 
 // check the validity of the message
-func checkValidity(check string, timestamp string) bool {
+func checkValidity(check string, stringURL string) bool {
 	pdebug("reading from .secretkey")
 	bytes, err := ioutil.ReadFile(".secretkey")
 	checkErr(err, "couldn't read from .secretkey")
 	password := hex.EncodeToString(bytes)
 
-	combination := timestamp + password
+	fmt.Println(hash(stringURL, password))
 
-	fmt.Println(check, hash(combination))
-	return true
+	return check == hash(stringURL, password)
 }
 
-func hash(msg string) string {
-	h := sha256.New()
-	h.Write([]byte(msg))
-	return hex.EncodeToString(h.Sum(nil))
+func hash(msg string, salt string) string {
+	for i := 0; i < hashIterations; i++ {
+		hasher.Reset()
+		hasher.Write([]byte(msg + salt))
+		msg = hex.EncodeToString(hasher.Sum(nil))
+	}
+	return msg
 }
 
 func main() {
 
 	checkValidity("dog", "timestamp")
 
+	flag.BoolVar(&secure, "secure", false, "require a token to authenticate robot updates")
 	flag.BoolVar(&debug, "debug", false, "print debug info")
 	flag.IntVar(&portNumber, "port", 7978, "port number")
 	flag.StringVar(&file, "file", ".robot_statuses", "file to save robot statuses")
@@ -221,7 +240,7 @@ func main() {
 	//load from local files/database
 	load()
 
-	//bind/start server
+	//bind server
 	http.HandleFunc("/update", update)
 	http.HandleFunc("/json", serveBasicHTML(jsonFull))
 	http.HandleFunc("/text", serveBasicHTML(textFull))
