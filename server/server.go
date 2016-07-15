@@ -180,10 +180,10 @@ func updateRobot(query url.Values, addr string) string {
 	query.Del("token")
 
 	if checkValidity(token, query.Encode()) || !secure {
-		fmt.Println("valid")
+		pdebug("valid token from " + query.Get("user"))
 	} else {
-		fmt.Println("not valid")
-		return "invalid token!"
+		pdebug("invalid token from " + query.Get("user"))
+		return "invalid token"
 	}
 
 	for i, bot := range robots {
@@ -213,8 +213,9 @@ func checkValidity(check string, stringURL string) bool {
 	checkErr(err, "couldn't read from .secretkey")
 	password := string(bytes[:])
 
-	fmt.Println(password)
-	fmt.Println(hash(stringURL, password))
+	pdebug("url: " + stringURL)
+	pdebug("password: " + password)
+	pdebug("hash: " + hash(stringURL, password))
 
 	return check == hash(stringURL, password)
 }
