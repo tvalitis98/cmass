@@ -75,8 +75,11 @@ func serveBasicHTML(f func() string) func(http.ResponseWriter, *http.Request) {
 func update(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	pdebug("IP of request: " + r.RemoteAddr)
-	fmt.Fprintf(w, updateRobot(query, r.RemoteAddr))
-	save()
+	message, valid := updateRobot(query, r.RemoteAddr)
+	if valid {
+		save()
+	}
+	fmt.Fprintf(w, message)
 }
 
 func jsonFull() string {
@@ -173,7 +176,7 @@ func addRobot(query url.Values, addr string) {
 	robots = append(robots, bot)
 }
 
-func updateRobot(query url.Values, addr string) string {
+func updateRobot(query url.Values, addr string) (string, bool) {
 	//saves the value of token then removes it so that the url string is identical
 	//to the string hashed by the client
 	token := query.Get("token")
@@ -183,7 +186,7 @@ func updateRobot(query url.Values, addr string) string {
 		pdebug("valid token from " + query.Get("user"))
 	} else {
 		pdebug("invalid token from " + query.Get("user"))
-		return "invalid token"
+		return "invalid token", false
 	}
 
 	for i, bot := range robots {
@@ -199,11 +202,11 @@ func updateRobot(query url.Values, addr string) string {
 			robots[i].LastAlive = strconv.FormatInt(newTime, 10)
 
 			pdebug("Updated " + query.Get("name"))
-			return "updated " + query.Get("name") + "\n\n" + " - - - - - -\n\n" + robots[i].String()
+			return "updated " + query.Get("name") + "\n\n" + " - - - - - -\n\n" + robots[i].String(), true
 		}
 	}
 	addRobot(query, addr) // if it's not in robots, add it
-	return "Added " + query.Get("name")
+	return "Added " + query.Get("name"), true
 }
 
 // check the validity of the message
