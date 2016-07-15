@@ -14,11 +14,11 @@
 
 #include <openssl/sha.h>
 
+#define BASE_URL "http://localhost:7978/update?"
 #define HASH_ITERATIONS 1000
 
 using namespace std;
 
-//geometry_msgs/PoseWithCovarianceStamped
 //smart_battery_msgs/SmartBatteryStatus
 
 string name;
@@ -29,10 +29,13 @@ boost::shared_ptr<ros::Subscriber> location_subscriber_;
 
 string getSecretkey()
 {
-    std::ifstream t(".secretkey");
-    std::stringstream buffer;
-    buffer << t.rdbuf();
-    return buffer.str();
+
+  ifstream in("/home/walter/.secretkey", std::ios::in | std::ios::binary);
+  if (in)
+  {
+    return(std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>()));
+  }
+  throw(errno);
 }
 
 string sha256(const string str)
@@ -97,18 +100,17 @@ int main(int argc, char **argv){
       ROS_INFO("key: %s", getSecretkey().c_str());
 
 
-      std::string url = "http://localhost:7978/update?";
       std::string name_str = "name=" + boost::lexical_cast<std::string>(hostname);
-      std::string x_str = "x=" + boost::lexical_cast<std::string>(x);
+      std::string x_str = "x=" + boost::lexical_cast<std::string>(6);
       std::string y_str = "y=" + boost::lexical_cast<std::string>(y);
-      //std::string timestamp_str = "timestamp=" + boost::lexical_cast<std::string>(y);
+      std::string timestamp_str = "t=" + boost::lexical_cast<std::string>(1);
 
-      std::string params = name_str + "&" + x_str + "&" + y_str;
+      std::string params = name_str + "&" + x_str + "&" + timestamp_str;
 
       std::string token = hash(params, getSecretkey());
       std::string token_str = "token=" + boost::lexical_cast<std::string>(token);
 
-      url = url + params + "&" + token_str;
+      std::string url = BASE_URL + params + "&" + token_str;
       ROS_INFO("url: %s", url.c_str());
 
 
