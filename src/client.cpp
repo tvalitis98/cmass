@@ -105,6 +105,7 @@ int main(int argc, char **argv){
       // because of the way that the server decodes them.
       std::string name_str = "name=" + boost::lexical_cast<std::string>(hostname);
       std::string timestamp_str = "timestamp=" + boost::lexical_cast<std::string>(time(0));
+      std::string name_str = "user=" + boost::lexical_cast<std::string>(username);
       std::string x_str = "x=" + boost::lexical_cast<std::string>(x);
       std::string y_str = "y=" + boost::lexical_cast<std::string>(y);
 

@@ -183,9 +183,9 @@ func updateRobot(query url.Values, addr string) (string, bool) {
 	query.Del("token")
 
 	if checkValidity(token, query.Encode()) || !secure {
-		pdebug("valid token from " + query.Get("user"))
+		pdebug("valid token from " + query.Get("name"))
 	} else {
-		pdebug("invalid token from " + query.Get("user"))
+		pdebug("invalid token from " + query.Get("name"))
 		return "invalid token", false
 	}
 
