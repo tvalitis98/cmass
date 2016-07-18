@@ -97,6 +97,17 @@ func hosts() string {
 	return ret
 }
 
+func hostsalive() string {
+	ret := ""
+	for _, bot := range robots {
+		if bot.Alive == "true" {
+			ret += bot.Name + "\t\t"
+			ret += bot.IP + "\n"
+		}
+	}
+	return ret
+}
+
 func hostsJSON() string {
 	ret := "{"
 	for _, bot := range robots {
@@ -250,6 +261,7 @@ func main() {
 	http.HandleFunc("/json", serveBasicHTML(jsonFull))
 	http.HandleFunc("/text", serveBasicHTML(textFull))
 	http.HandleFunc("/hosts", serveBasicHTML(hosts))
+	http.HandleFunc("/hostsalive", serveBasicHTML(hostsalive))
 	http.HandleFunc("/hostsjson", serveBasicHTML(hostsJSON))
 	http.HandleFunc("/hostsalivejson", serveBasicHTML(hostsAliveJSON))
 
