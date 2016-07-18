@@ -11,6 +11,7 @@
 
 #include <unistd.h>
 #include <limits.h>
+#include <ctime>
 
 #include <openssl/sha.h>
 
@@ -100,12 +101,14 @@ int main(int argc, char **argv){
       ROS_INFO("key: %s", getSecretkey().c_str());
 
 
+      // IMPORTANT: URL params must be in alphabetical order (except for token)
+      // because of the way that the server decodes them.
       std::string name_str = "name=" + boost::lexical_cast<std::string>(hostname);
-      std::string x_str = "x=" + boost::lexical_cast<std::string>(6);
+      std::string timestamp_str = "timestamp=" + boost::lexical_cast<std::string>(time(0));
+      std::string x_str = "x=" + boost::lexical_cast<std::string>(x);
       std::string y_str = "y=" + boost::lexical_cast<std::string>(y);
-      std::string timestamp_str = "t=" + boost::lexical_cast<std::string>(1);
 
-      std::string params = name_str + "&" + x_str + "&" + timestamp_str;
+      std::string params = name_str + "&" + timestamp_str + "&" + x_str + "&" + y_str;
 
       std::string token = hash(params, getSecretkey());
       std::string token_str = "token=" + boost::lexical_cast<std::string>(token);
