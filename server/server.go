@@ -44,14 +44,13 @@ var robots []Robot
 var portNumber int
 var file string
 var debug bool
-var secure bool
+var insecure bool
 
 var saveTicker = time.NewTicker(20 * time.Second) // controls time between saves
-
-var aliveTimeout = int64(10) // (in seconds) if a robot isn't heard from in this time, it's not alive
-
-var hasher = sha256.New() // used to hash
-var hashIterations = 1000 // must be agreed upon by client and server
+var aliveTimeout = int64(10)                      // (in seconds) if a robot isn't heard from in this time, it's not alive
+var tokenTimeout = int64(10)                      // (in seconds) tokens expire after this amount of time
+var hasher = sha256.New()                         // used to hash
+var hashIterations = 1000                         // must be agreed upon by client and server
 
 /////////////
 // ROUTING //
@@ -70,6 +69,7 @@ func serveBasicHTML(f func() string) func(http.ResponseWriter, *http.Request) {
 ////		/json							serves all robot info as json
 ////		/hosts						legacy support, serves robotname:IP
 ////		/hostsjson				legacy support, serves json of robotname:IP
+////		/hostsalive				legacy support, serves robotname:IP of active robots
 ////		/hostsalivejson		legacy support, serves json of robotname:IP of active robots
 
 func update(w http.ResponseWriter, r *http.Request) {
@@ -193,11 +193,21 @@ func updateRobot(query url.Values, addr string) (string, bool) {
 	token := query.Get("token")
 	query.Del("token")
 
-	if checkValidity(token, query.Encode()) || !secure {
-		pdebug("valid token from " + query.Get("name"))
-	} else {
-		pdebug("invalid token from " + query.Get("name"))
-		return "invalid token", false
+	robotTime, err := strconv.ParseInt(query.Get("timestamp"), 10, 64)
+	checkErr(err, "couldn't parse timestamp from request")
+
+	if !insecure {
+		if !checkValidity(token, query.Encode()) { //query.Encode reorders (alphabetically)
+			pdebug("invalid token from " + query.Get("name"))
+			return "invalid token", false
+		} else if time.Now().Unix()-robotTime > tokenTimeout || time.Now().Unix()-robotTime <= 0 {
+			//added the <= to prevent attackers from using arbitrary numbers greater than time.Now
+			// to find a collision with the hash that would be valid and not expired
+			pdebug("expired token from " + query.Get("name"))
+			return "expired token", false
+		} else {
+			pdebug("valid token from " + query.Get("name"))
+		}
 	}
 
 	for i, bot := range robots {
@@ -207,7 +217,8 @@ func updateRobot(query url.Values, addr string) (string, bool) {
 			robots[i].X = query.Get("x")
 			robots[i].Y = query.Get("y")
 
-			oldTime, _ := strconv.ParseInt(robots[i].LastAlive, 10, 64)
+			oldTime, err := strconv.ParseInt(robots[i].LastAlive, 10, 64)
+			checkErr(err, "couldn't parse LastAlive")
 			newTime := time.Now().Unix()
 			robots[i].Alive = strconv.FormatBool(newTime-oldTime < aliveTimeout)
 			robots[i].LastAlive = strconv.FormatInt(newTime, 10)
@@ -244,10 +255,7 @@ func hash(msg string, salt string) string {
 }
 
 func main() {
-
-	checkValidity("dog", "timestamp")
-
-	flag.BoolVar(&secure, "secure", false, "require a token to authenticate robot updates")
+	flag.BoolVar(&insecure, "insecure", false, "don't require token to authenticate robot updates")
 	flag.BoolVar(&debug, "debug", false, "print debug info")
 	flag.IntVar(&portNumber, "port", 7978, "port number")
 	flag.StringVar(&file, "file", ".robot_statuses", "file to save robot statuses")
