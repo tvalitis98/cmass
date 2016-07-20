@@ -46,11 +46,12 @@ var file string
 var debug bool
 var insecure bool
 
-var saveTicker = time.NewTicker(20 * time.Second) // controls time between saves
-var aliveTimeout = int64(10)                      // (in seconds) if a robot isn't heard from in this time, it's not alive
-var tokenTimeout = int64(10)                      // (in seconds) tokens expire after this amount of time
-var hasher = sha256.New()                         // used to hash
-var hashIterations = 1000                         // must be agreed upon by client and server
+var aliveTicker = time.NewTicker(10 * time.Second) // controls time between updates to who is alive
+var aliveTimeout = int64(10)                       // (in seconds) if a robot isn't heard from in this time, it's not alive
+var tokenTimeout = int64(10)                       // (in seconds) tokens expire after this amount of time
+var hasher = sha256.New()                          // used to hash
+var hashIterations = 1000                          // must be agreed upon by client and server
+var timeLastSaved int64
 
 /////////////
 // ROUTING //
@@ -147,11 +148,13 @@ func pdebug(message string) {
 }
 
 //error helper, prints error message if there's an error
-func checkErr(err error, message string) {
+func checkErr(err error, message string) bool {
 	if err != nil {
 		log.Printf("Error: %s\n", message)
 		log.Println(err)
+		return true
 	}
+	return false
 }
 
 /////////
@@ -159,11 +162,15 @@ func checkErr(err error, message string) {
 /////////
 
 func save() {
-	pdebug("saving to local file")
-	bytes, err := json.Marshal(robots)
-	checkErr(err, "couldn't marshal the DNS")
-	err = ioutil.WriteFile(file, bytes, 0644)
-	checkErr(err, "couldn't write to "+file)
+	currentTime := time.Now().Unix()
+	if currentTime != timeLastSaved { //doesn't save more than once in 1 second
+		pdebug("saving to local file")
+		bytes, err := json.Marshal(robots)
+		checkErr(err, "couldn't marshal the DNS")
+		err = ioutil.WriteFile(file, bytes, 0644)
+		checkErr(err, "couldn't write to "+file)
+	}
+	timeLastSaved = currentTime
 }
 
 func load() {
@@ -172,6 +179,22 @@ func load() {
 	checkErr(err, "couldn't read from "+file)
 	err = json.Unmarshal(bytes, &robots)
 	checkErr(err, "couldn't unmarshal data read from "+file)
+}
+
+func updateAlive() {
+	for {
+		for i := range robots {
+			robotTime, err := strconv.ParseInt(robots[i].LastAlive, 10, 64)
+			if checkErr(err, "couldn't parse LastAlive in updateAlive()") {
+				robots[i].Alive = "false"
+			} else {
+				robots[i].Alive = strconv.FormatBool(time.Now().Unix()-robotTime < aliveTimeout)
+
+			}
+		}
+		pdebug("updated alive")
+		<-aliveTicker.C
+	}
 }
 
 func addRobot(query url.Values, addr string) {
@@ -200,8 +223,8 @@ func updateRobot(query url.Values, addr string) (string, bool) {
 		if !checkValidity(token, query.Encode()) { //query.Encode reorders (alphabetically)
 			pdebug("invalid token from " + query.Get("name"))
 			return "invalid token", false
-		} else if time.Now().Unix()-robotTime > tokenTimeout || time.Now().Unix()-robotTime <= 0 {
-			//added the <= to prevent attackers from using arbitrary numbers greater than time.Now
+		} else if time.Now().Unix()-robotTime > tokenTimeout || time.Now().Unix()-robotTime < 0 {
+			//added the < 0 to prevent attackers from using arbitrary numbers greater than time.Now
 			// to find a collision with the hash that would be valid and not expired
 			pdebug("expired token from " + query.Get("name"))
 			return "expired token", false
@@ -216,12 +239,7 @@ func updateRobot(query url.Values, addr string) (string, bool) {
 			robots[i].IP = addr
 			robots[i].X = query.Get("x")
 			robots[i].Y = query.Get("y")
-
-			oldTime, err := strconv.ParseInt(robots[i].LastAlive, 10, 64)
-			checkErr(err, "couldn't parse LastAlive")
-			newTime := time.Now().Unix()
-			robots[i].Alive = strconv.FormatBool(newTime-oldTime < aliveTimeout)
-			robots[i].LastAlive = strconv.FormatInt(newTime, 10)
+			robots[i].LastAlive = strconv.FormatInt(time.Now().Unix(), 10)
 
 			pdebug("Updated " + query.Get("name"))
 			return "updated " + query.Get("name") + "\n\n" + " - - - - - -\n\n" + robots[i].String(), true
@@ -263,6 +281,9 @@ func main() {
 
 	//load from local files/database
 	load()
+
+	//starts a new thread to periodically update who is 'alive'
+	go updateAlive()
 
 	//bind server
 	http.HandleFunc("/update", update)
