@@ -28,7 +28,7 @@ string getSecretkey() {
   if (in) {
     return(std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>()));
   }
-  ROS_ERROR("Couldn't open .secretkey")
+  ROS_ERROR("Couldn't open .secretkey");
   throw(errno);
 }
 
@@ -80,7 +80,7 @@ int main(int argc, char **argv){
   CURL *curl;
   CURLcode res;
   curl = curl_easy_init();
-  ros::Rate rate(0.25); // frequency of curl (0.25 = 4 seconds) 
+  ros::Rate rate(0.25); // frequency of curl (0.25 = 4 seconds)
 
   while(ros::ok()) {
     ros::spinOnce();
