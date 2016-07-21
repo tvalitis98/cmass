@@ -75,8 +75,10 @@ func serveBasicHTML(f func() string) func(http.ResponseWriter, *http.Request) {
 
 func update(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	pdebug("IP of request: " + r.RemoteAddr)
-	message, valid := updateRobot(query, r.RemoteAddr)
+	splitIP := strings.Split(r.RemoteAddr, ":")
+	requestIP := strings.Join(splitIP[:len(splitIP)-1], ":") //removes what's after the last ':' (done this way bc IP6)
+	pdebug("IP of request: " + requestIP)
+	message, valid := updateRobot(query, requestIP)
 	if valid {
 		save()
 	}
