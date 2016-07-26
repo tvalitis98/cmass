@@ -18,7 +18,12 @@
 
 #define KEY_LOCATION "/home/walter/.secretkey"
 #define BASE_URL "http://localhost:7978/update?"
+
 #define HASH_ITERATIONS 1000
+
+#define CURL_RATE 4
+#define LONG_CURL_RATE 60
+#define CURL_FAIL_LIMIT 5 //after this many consecutive failures, escalade to long curl timer
 
 using namespace std;
 
@@ -80,7 +85,11 @@ int main(int argc, char **argv){
   CURL *curl;
   CURLcode res;
   curl = curl_easy_init();
-  ros::Rate rate(0.25); // frequency of curl (0.25 = 4 seconds)
+  ros::Rate curl_rate(1.0f / CURL_RATE); // rate takes frequency, so take reciprocal
+  ros::Rate slow_curl_rate( 1.0f / LONG_CURL_RATE);
+  ros::Rate current_rate = curl_rate;
+
+  int consecutive_curl_failures = 0;
 
   while(ros::ok()) {
     ros::spinOnce();
@@ -108,11 +117,21 @@ int main(int argc, char **argv){
       curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
       curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
       res = curl_easy_perform(curl);
-      if(res != CURLE_OK) {
+      if(res != CURLE_OK) { // if the curl fails
         ROS_ERROR("curl operation failed: %s",  curl_easy_strerror(res));
+        if (consecutive_curl_failures >= CURL_FAIL_LIMIT) {
+          ROS_ERROR("consecutive curl failure limit reached, escalading to long curl timer");
+          current_rate = slow_curl_rate;
+        }
+        consecutive_curl_failures++;
+      }
+
+      else {
+        consecutive_curl_failures = 0;
+        current_rate = curl_rate;
       }
     }
-    rate.sleep();
+    curl_rate.sleep();
   }
 
   curl_easy_cleanup(curl);
