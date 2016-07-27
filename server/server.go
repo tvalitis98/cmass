@@ -256,7 +256,7 @@ func checkValidity(check string, stringURL string) bool {
 	pdebug("reading from .secretkey")
 	bytes, err := ioutil.ReadFile(".secretkey")
 	checkErr(err, "couldn't read from .secretkey")
-	password := string(bytes[:])
+	password := strings.TrimSpace(string(bytes[:])) // TrimSpace removes trailing \n or \r
 
 	pdebug("url: " + stringURL)
 	pdebug("password: " + password)
