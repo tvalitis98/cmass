@@ -1,3 +1,4 @@
 .robot_statuses
 .secretkey
 bin
+.pyc
