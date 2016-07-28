@@ -31,7 +31,9 @@ using namespace std;
 string getSecretkey() {
   ifstream in(KEY_LOCATION, std::ios::in | std::ios::binary);
   if (in) {
-    return(std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>()));
+    string str = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
+    return str;
   }
   ROS_ERROR("Couldn't open .secretkey");
   throw(errno);

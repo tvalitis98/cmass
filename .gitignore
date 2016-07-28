@@ -2,3 +2,4 @@
 .secretkey
 bin
 .pyc
+.oldIP
