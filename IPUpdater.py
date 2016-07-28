@@ -9,7 +9,7 @@ hostname = check_output("hostname").rstrip()
 username = os.getlogin().rstrip()
 
 def cmass_hash(msg):
-    salt = open(SECRETKEY_LOCATION, "r").read()
+    salt = open(SECRETKEY_LOCATION, "r").read().rstrip()
     for i in range(HASH_ITERATIONS):
         msg = hashlib.sha256(msg+salt).hexdigest()
     return msg
@@ -21,10 +21,10 @@ if ip_address != old_ip_address: #the IP has changed since the last execution
 
     ### make a request to the server updating the IP and active user
     timestamp = int(time.time())
-    params = "name=" + hostname + "&user=" + username + "&timestamp=" + str(timestamp)
+    params = "name=" + hostname + "&timestamp=" + str(timestamp) + "&user=" + username
     token = cmass_hash(params)
     url = BASE_URL + params + "&token=" + token
-    print urllib2.urlopen(url).read()
+    urllib2.urlopen(url).read()
 
     ### update the stored IP so we can detect the next change
     with open(".oldIP", "w") as f:
