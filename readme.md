@@ -3,7 +3,7 @@
 
 CMASS allows ROS robots to communicate diagnostics to a server which can then serve them on the web. 
 
-![Error finding image](https://i.imgur.com/hNGEgdV.png "An overview of the structure of the system")
+![Error finding image](https://i.imgur.com/XFXwHSN.png "An overview of the structure of the system")
 
 ---
 ### Client
