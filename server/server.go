@@ -239,8 +239,8 @@ func updateRobot(query url.Values, addr string) (string, bool) {
 		if bot.Name == query.Get("name") {
 			robots[i].User = query.Get("user")
 			robots[i].IP = addr
-			robots[i].X = query.Get("x")
-			robots[i].Y = query.Get("y")
+			if query.Get("x") != "" { robots[i].X = query.Get("x") }
+			if query.Get("y") != "" { robots[i].Y = query.Get("y") }
 			robots[i].LastAlive = strconv.FormatInt(time.Now().Unix(), 10)
 
 			pdebug("Updated " + query.Get("name"))
