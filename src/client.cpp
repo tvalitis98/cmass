@@ -16,7 +16,7 @@
 #include <openssl/sha.h>
 
 
-#define KEY_LOCATION "/home/users/bwi/.cmasskey"
+#define KEY_LOCATION "/home/bwilab/.cmasskey"
 #define BASE_URL "http://localhost:7978/update?"
 
 #define HASH_ITERATIONS 1000
