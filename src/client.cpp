@@ -16,7 +16,7 @@
 #include <openssl/sha.h>
 
 
-#define KEY_LOCATION "/home/walter/.secretkey"
+#define KEY_LOCATION "/home/users/bwi/.cmasskey"
 #define BASE_URL "http://localhost:7978/update?"
 
 #define HASH_ITERATIONS 1000
@@ -35,7 +35,7 @@ string getSecretkey() {
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
     return str;
   }
-  ROS_ERROR("Couldn't open .secretkey");
+  ROS_ERROR("Couldn't open .cmasskey");
   throw(errno);
 }
 

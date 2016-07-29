@@ -253,9 +253,9 @@ func updateRobot(query url.Values, addr string) (string, bool) {
 
 // check the validity of the message
 func checkValidity(check string, stringURL string) bool {
-	pdebug("reading from .secretkey")
-	bytes, err := ioutil.ReadFile(".secretkey")
-	checkErr(err, "couldn't read from .secretkey")
+	pdebug("reading from .cmasskey")
+	bytes, err := ioutil.ReadFile(".cmasskey")
+	checkErr(err, "couldn't read from .cmasskey")
 	password := strings.TrimSpace(string(bytes[:])) // TrimSpace removes trailing \n or \r
 
 	pdebug("url: " + stringURL)

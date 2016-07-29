@@ -2,7 +2,7 @@ import hashlib, os, time, urllib2
 from subprocess import check_output
 
 HASH_ITERATIONS = 1000
-SECRETKEY_LOCATION = "/home/walter/.secretkey"
+SECRETKEY_LOCATION = "/home/users/bwi/.cmasskey"
 BASE_URL = "http://nixons-head.csres.utexas.edu:7978/update?"
 
 hostname = check_output("hostname").rstrip()
