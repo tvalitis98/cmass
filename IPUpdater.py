@@ -15,7 +15,10 @@ def cmass_hash(msg):
     return msg
 
 ip_address = check_output("ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d'/'", shell=True)
-old_ip_address = open(".oldIP", "r").read().rstrip()
+try:
+    old_ip_address = open(".oldIP", "r").read().rstrip()
+except IOError:
+    old_ip_address = "" # so that it will enter the conditional and create .oldIP
 
 if ip_address != old_ip_address: #the IP has changed since the last execution
 
@@ -27,5 +30,5 @@ if ip_address != old_ip_address: #the IP has changed since the last execution
     urllib2.urlopen(url).read()
 
     ### update the stored IP so we can detect the next change
-    with open(".oldIP", "w") as f:
+    with open(".oldIP", "w+") as f:
         f.write(ip_address)
