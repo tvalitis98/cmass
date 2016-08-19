@@ -135,7 +135,7 @@ func hostsAliveJSON() string {
 func textFull() string {
 	ret := ""
 	for _, bot := range robots {
-		ret += bot.String()
+		ret += bot.String() + "\n"
 	}
 	return ret
 }
