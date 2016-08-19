@@ -15,6 +15,7 @@ def cmass_hash(msg):
     return msg
 
 ip_address = check_output("ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d'/'", shell=True)
+# based on updater from Pato's smallDNS (TODO: fix? It works reliably on all robots though)
 try:
     old_ip_address = open(".oldIP", "r").read().rstrip()
 except IOError:
