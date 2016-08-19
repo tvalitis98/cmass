@@ -258,7 +258,7 @@ func updateRobot(query url.Values, addr string) (string, bool) {
 
 // check the validity of the message
 func checkValidity(check string, stringURL string) bool {
-	if password == nil {
+	if password == "" {
 		pdebug("reading from .cmasskey")
 		bytes, err := ioutil.ReadFile(".cmasskey")
 		checkErr(err, "couldn't read from .cmasskey")
