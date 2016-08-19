@@ -49,6 +49,7 @@ var insecure bool
 var aliveTicker = time.NewTicker(10 * time.Second) // controls time between updates to who is alive
 var aliveTimeout = int64(10)                       // (in seconds) if a robot isn't heard from in this time, it's not alive
 var tokenTimeout = int64(10)                       // (in seconds) tokens expire after this amount of time
+var password string                                // the password that .cmasskey stores
 var hasher = sha256.New()                          // used to hash
 var hashIterations = 1000                          // must be agreed upon by client and server
 var timeLastSaved int64
@@ -257,10 +258,12 @@ func updateRobot(query url.Values, addr string) (string, bool) {
 
 // check the validity of the message
 func checkValidity(check string, stringURL string) bool {
-	pdebug("reading from .cmasskey")
-	bytes, err := ioutil.ReadFile(".cmasskey")
-	checkErr(err, "couldn't read from .cmasskey")
-	password := strings.TrimSpace(string(bytes[:])) // TrimSpace removes trailing \n or \r
+	if password == nil {
+		pdebug("reading from .cmasskey")
+		bytes, err := ioutil.ReadFile(".cmasskey")
+		checkErr(err, "couldn't read from .cmasskey")
+		password = strings.TrimSpace(string(bytes[:])) // TrimSpace removes trailing \n or \r
+	}
 
 	pdebug("url: " + stringURL)
 	pdebug("password: " + password)
