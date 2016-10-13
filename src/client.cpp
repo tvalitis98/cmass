@@ -17,7 +17,7 @@
 
 
 #define KEY_LOCATION "/home/bwilab/.cmasskey"
-#define BASE_URL "http://localhost:7978/update?"
+#define BASE_URL "http://nixons-head.csres.utexas.edu:7978/update?"
 
 #define HASH_ITERATIONS 1000
 
