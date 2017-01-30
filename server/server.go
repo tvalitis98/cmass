@@ -181,8 +181,10 @@ func load() {
 	pdebug("reading from " + file)
 	bytes, err := ioutil.ReadFile(file)
 	checkErr(err, "couldn't read from "+file)
-	err = json.Unmarshal(bytes, &robots)
-	checkErr(err, "couldn't unmarshal data read from "+file)
+	if err == nil {
+		err = json.Unmarshal(bytes, &robots)
+		checkErr(err, "couldn't unmarshal data read from "+file)
+	}
 }
 
 func updateAlive() {
