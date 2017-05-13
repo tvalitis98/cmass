@@ -15,6 +15,10 @@
 
 #include <openssl/sha.h>
 
+//includes for calculating battery percentage
+#include <math.h>
+#include <diagnostic_msgs/DiagnosticArray.h>
+#include <string>
 
 #define KEY_LOCATION "/home/bwilab/.cmasskey"
 #define BASE_URL "http://nixons-head.csres.utexas.edu:7978/update?"
@@ -25,8 +29,44 @@
 #define LONG_CURL_RATE 60
 #define CURL_FAIL_LIMIT 5 //after this many consecutive failures, escalade to long curl timer
 
+//these are the constants for calculating the remaining battery life
+#define A_CONST 4.85159026115e-05
+#define K_CONST 0.999776391837
+#define C_CONST 12.7493833452
+#define EOL_VOLTAGE 10.75
+double voltage = 0.0;
+
+
 using namespace std;
 
+void diagnosticsCallback(const diagnostic_msgs::DiagnosticArray::ConstPtr& msg) {
+    size_t nDiagnosticStatus = msg->status.size();
+    for(size_t i = 0; i < nDiagnosticStatus; i++) {
+        
+        if(msg->status[i].name.compare("voltage") == 0) {
+            size_t nValues = msg->status[i].values.size();
+            
+            for(size_t j = 0; j < nValues; j++) {
+               
+                if(msg->status[i].values[j].key.compare("segbot voltage: ") == 0) {
+                   std::String valS = msg->status[i].values[j].value;
+                   voltage = strtod(valS.c_str(), NULL);
+               }
+            }
+        }
+    }
+}
+
+//calculates the remaining battery life
+double get_time_estimate(double voltage){
+    double max_life = log((EOL_VOLTAGE - C_CONST) / -A) / K_CONST;
+    if(voltage > C_CONST) {
+        A_CONST = -A_CONST;
+        return (log((EOL_VOLTAGE - C) / -A) / K + max_life);
+    }
+    double cur_life = log((voltage - C_CONST) / -A_CONST) / K_CONST;
+    return max_life - cur_life;
+}
 
 string getSecretkey() {
   ifstream in(KEY_LOCATION, std::ios::in | std::ios::binary);
@@ -59,7 +99,6 @@ string hash(string msg, string salt) {
     return msg;
 }
 
-
 float x;
 float y;
 boost::shared_ptr<ros::Subscriber> location_subscriber_;
@@ -77,7 +116,10 @@ int main(int argc, char **argv){
 
   location_subscriber_.reset(new ros::Subscriber);
   *location_subscriber_ = n.subscribe<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 1, &locationHandler);
-
+    
+  //subcriber to robot battery voltage
+  ros::Subscriber sub = n.subscribe("diagnostics", 1000, diagnosticsCallback);      
+    
   // retrieve the computer and user names
   char hostname[HOST_NAME_MAX];
   char username[LOGIN_NAME_MAX];
@@ -99,16 +141,17 @@ int main(int argc, char **argv){
     //send http request
     if(curl) {
 
+        
       std::string name_str = "name=" + boost::lexical_cast<std::string>(hostname);
       std::string timestamp_str = "timestamp=" + boost::lexical_cast<std::string>(time(0));
       std::string user_str = "user=" + boost::lexical_cast<std::string>(username);
       std::string x_str = "x=" + boost::lexical_cast<std::string>(x);
       std::string y_str = "y=" + boost::lexical_cast<std::string>(y);
+      std::string time_remaining_str = "time_remaining=" + boost::lexical_cast<std::string>(get_estimate(voltage));//change params
 
       // IMPORTANT: URL params must be in alphabetical order by key (except for token)
       // because of the way that the server decodes them.
-      std::string params = name_str + "&" + timestamp_str + "&" + user_str + "&" + x_str + "&" + y_str;
-
+      std::string params = name_str + "&" + timestamp_str + "&" + user_str + "&" + x_str + "&" + y_str + "&" + time_remaining_str;
       std::string token = hash(params, getSecretkey());
       std::string token_str = "token=" + boost::lexical_cast<std::string>(token);
 
